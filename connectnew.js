@@ -1,9 +1,8 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', { value: true });
-
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+
 const ConnectElementCommonMethodConfig = {
   setOnLoadError: _listener => { },
   setOnLoaderStart: _listener => { }
@@ -74,13 +73,12 @@ const injectScript = () => {
 };
 let stripePromise$1 = null;
 const loadScript = () => {
-  // Ensure that we only attempt to load Connect.js at most once
   if (stripePromise$1 !== null) {
     return stripePromise$1;
   }
   stripePromise$1 = new Promise((resolve, reject) => {
     if (typeof window === "undefined") {
-      reject("ConnectJS won't load when rendering code in the server - it can only be loaded on a browser. This error is expected when loading ConnectJS in SSR environments, like NextJS. It will have no impact in the UI, however if you wish to avoid it, you can switch to the `pure` version of the connect.js loader: https://github.com/stripe/connect-js#importing-loadconnect-without-side-effects.");
+      reject("ConnectJS won't load when rendering code in the server - it can only be loaded on a browser.");
       return;
     }
     if (window.StripeConnect) {
@@ -151,12 +149,6 @@ const initStripeConnect = (stripePromise, initParams) => {
       }
       stripeConnectInstance.then(instance => {
         if (!element.isConnected && !element.setConnector) {
-          // If the element is not connected to the DOM and the `setConnector` method is not
-          // defined, this indicates the element was created before connect.js was loaded, and has
-          // not been transformed into a custom element yet
-          // To load the custom element code on it, we need to connect and disconnect it to the DOM
-          // This isn't a problem, as the element will be invisible, and we know the element is already
-          // not currently connected to the DOM
           const oldDisplay = element.style.display;
           element.style.display = "none";
           document.body.appendChild(element);
@@ -164,7 +156,7 @@ const initStripeConnect = (stripePromise, initParams) => {
           element.style.display = oldDisplay;
         }
         if (!element || !element.setConnector) {
-          throw new Error(`Element ${tagName} was not transformed into a custom element. Are you using a documented component? See https://docs.stripe.com/connect/supported-embedded-components for a list of supported components`);
+          throw new Error(`Element ${tagName} was not transformed into a custom element.`);
         }
         element.setConnector(instance.connect);
       });
@@ -196,7 +188,6 @@ const createWrapper = stripeConnect => {
         metaOptions: Object.assign(Object.assign({}, metaOptions), {
           sdk: true,
           sdkOptions: {
-            // This will be replaced by the npm package version when bundling
             sdkVersion: "3.3.18"
           }
         })
@@ -207,8 +198,6 @@ const createWrapper = stripeConnect => {
   return wrapper;
 };
 
-// Execute our own script injection after a tick to give users time to do their
-// own script injection.
 const stripePromise = Promise.resolve().then(() => loadScript());
 let loadCalled = false;
 stripePromise.catch(err => {
@@ -221,4 +210,5 @@ const loadConnectAndInitialize = initParams => {
   return initStripeConnect(stripePromise, initParams);
 };
 
+// Expose loadConnectAndInitialize globally
 window.loadConnectAndInitialize = loadConnectAndInitialize;
